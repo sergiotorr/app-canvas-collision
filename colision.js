@@ -14,8 +14,8 @@ class Circle {
     this.originalColor = color;
     this.text = text;
     this.speed = speed;
-    this.dx = (Math.random() * 2 - 1) * this.speed; // Dirección aleatoria en X
-    this.dy = (Math.random() * 2 - 1) * this.speed; // Dirección aleatoria en Y
+    this.dx = (Math.random() * 2 - 1) * this.speed; // Movimiento lateral aleatorio
+    this.dy = -Math.abs(this.speed); // Movimiento hacia arriba
   }
 
   draw(context) {
@@ -35,12 +35,14 @@ class Circle {
     this.posX += this.dx;
     this.posY += this.dy;
 
-    // Rebote en los bordes del canvas
+    // Rebote en los bordes laterales
     if (this.posX + this.radius > canvas.width || this.posX - this.radius < 0) {
       this.dx = -this.dx;
     }
-    if (this.posY + this.radius > canvas.height || this.posY - this.radius < 0) {
-      this.dy = -this.dy;
+
+    // Cuando el círculo llega al tope superior, regresa al margen inferior
+    if (this.posY - this.radius < 0) {
+      this.posY = canvas.height - this.radius - 1; // Reiniciar justo antes del margen inferior
     }
   }
 
@@ -49,12 +51,9 @@ class Circle {
     const distY = this.posY - otherCircle.posY;
     const distance = Math.sqrt(distX * distX + distY * distY);
 
-    // Verificar si los círculos están en colisión
     if (distance < this.radius + otherCircle.radius) {
-      this.color = '#0000FF'; // Cambia a color azul durante la colisión
+      this.color = '#0000FF';
       otherCircle.color = '#0000FF';
-      
-      // Rebote: intercambiar velocidades para simular colisión elástica
       let tempDx = this.dx;
       let tempDy = this.dy;
       this.dx = otherCircle.dx;
@@ -62,27 +61,47 @@ class Circle {
       otherCircle.dx = tempDx;
       otherCircle.dy = tempDy;
     } else {
-      // Restaurar color original después de la colisión
       this.color = this.originalColor;
       otherCircle.color = otherCircle.originalColor;
     }
+  }
+
+  // Método para verificar si el mouse hizo clic en el círculo
+  isClicked(mouseX, mouseY) {
+    const distX = this.posX - mouseX;
+    const distY = this.posY - mouseY;
+    const distance = Math.sqrt(distX * distX + distY * distY);
+    return distance < this.radius;
   }
 }
 
 let circles = [];
 
-// Generar círculos aleatorios
+// Generar círculos aleatorios que inicien justo antes del margen inferior
 function generateCircles(n) {
   for (let i = 0; i < n; i++) {
     let radius = Math.random() * 30 + 20; // Radio entre 20 y 50
     let x = Math.random() * (canvas.width - radius * 2) + radius;
-    let y = Math.random() * (canvas.height - radius * 2) + radius;
-    let color = `#${Math.floor(Math.random() * 16777215).toString(16)}`; // Color aleatorio
+    let y = canvas.height - radius - 1; // Posición inicial justo antes del margen inferior
+    let color = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
     let speed = Math.random() * 2 + 1; // Velocidad entre 1 y 3
-    let text = `C${i + 1}`; // Etiqueta del círculo
+    let text = `C${i + 1}`;
     circles.push(new Circle(x, y, radius, color, text, speed));
   }
 }
+
+// Función para eliminar el círculo al hacer clic
+function removeCircleAt(mouseX, mouseY) {
+  circles = circles.filter(circle => !circle.isClicked(mouseX, mouseY));
+}
+
+// Detección del clic del mouse
+canvas.addEventListener('click', function(event) {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = event.clientX - rect.left;
+  const mouseY = event.clientY - rect.top;
+  removeCircleAt(mouseX, mouseY);
+});
 
 // Función para animar los círculos
 function animate() {
